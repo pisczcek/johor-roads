@@ -158,12 +158,20 @@ setBase(baseKey);
 
 /* ---------- Layer chips ---------- */
 const layers = {};
+const MINZ = {secondary:9, felda:9, tertiary:10}; // draw dense layers only when zoomed in
+function sync(){
+  const z=map.getZoom();
+  for(const k in layers){
+    const on=$('chip-'+k).querySelector('input').checked && z>=(MINZ[k]||0);
+    on?layers[k].addTo(map):map.removeLayer(layers[k]);
+  }
+}
+map.on('zoomend',sync);
 $('chips').innerHTML = TYPES.map(([k,label,c])=>`
   <label class="chip loading" id="chip-${k}"><input type="checkbox" data-k="${k}" checked>
-  <i class="sw" style="background:${c}"></i>${label}<span class="n"></span></label>`).join('');
+  <i class="sw" style="background:${c}"></i>${label}${MINZ[k]?` <small style="color:var(--muted)">z${MINZ[k]}+</small>`:''}<span class="n"></span></label>`).join('');
 $('chips').addEventListener('change',e=>{
-  const l = layers[e.target.dataset.k]; if(!l) return;
-  e.target.checked ? l.addTo(map) : map.removeLayer(l);
+  sync();
 });
 
 /* ---------- IndexedDB cache ---------- */
@@ -181,7 +189,8 @@ async function cacheSet(k,v){const d=await db; if(d) d.transaction('c','readwrit
 
 /* ---------- Fetch (one query per type for the whole state) ---------- */
 async function overpass(sel){
-  const q = `[out:json][timeout:90];area["name"="Johor"]["admin_level"="4"]->.a;${sel}(area.a);out geom qt;`;
+  // bbox is far cheaper than an area lookup; 'skel' drops tags we never use
+  const q = `[out:json][timeout:60][bbox:1.15,102.45,2.9,104.5];${sel};out skel geom qt;`;
   let err;
   for(const url of ENDPOINTS){
     try{
@@ -189,8 +198,16 @@ async function overpass(sel){
       if(!r.ok) throw new Error('HTTP '+r.status);
       const j = await r.json();
       // compact: round to 5 dp, keep only coordinate arrays
-      return j.elements.filter(e=>e.geometry?.length>1)
-        .map(e=>e.geometry.map(p=>[+p.lat.toFixed(5),+p.lon.toFixed(5)]));
+      return j.elements.filter(e=>e.geometry?.length>1).map(e=>{
+        // drop points <~8 m apart (invisible, but costly to draw and cache)
+        const g=e.geometry, out=[[g[0].lat,g[0].lon]];
+        for(let i=1;i<g.length-1;i++){
+          const l=out[out.length-1];
+          if(Math.abs(g[i].lat-l[0])+Math.abs(g[i].lon-l[1])>.00008) out.push([g[i].lat,g[i].lon]);
+        }
+        const z=g[g.length-1]; out.push([z.lat,z.lon]);
+        return out.map(p=>[+p[0].toFixed(5),+p[1].toFixed(5)]);
+      });
     }catch(e){err=e}
   }
   throw err;
@@ -198,14 +215,14 @@ async function overpass(sel){
 async function loadType([k,label,color,sel,weight,dash]){
   const chip = $('chip-'+k);
   try{
-    const key='v1-'+k;
+    const key='v2-'+k;
     let lines = await cacheGet(key);
     if(!lines){ lines = await overpass(sel); cacheSet(key,lines); }
     // ONE multi-polyline per type instead of thousands of objects
     const layer = L.polyline(lines,{color,weight,opacity:.85,dashArray:dash,
       smoothFactor:1.5,interactive:false,lineCap:'round',lineJoin:'round'});
     layers[k]=layer;
-    if(chip.querySelector('input').checked) layer.addTo(map);
+    sync();
     chip.querySelector('.n').textContent = lines.length.toLocaleString();
   }catch(e){
     chip.querySelector('.n').textContent='⚠';
@@ -215,6 +232,8 @@ async function loadType([k,label,color,sel,weight,dash]){
 }
 async function loadAll(){
   $('prog').style.opacity=1;$('prog').style.width='5%';
+  const t0=performance.now();
+  if(!(await db)) toast('Cache unavailable here — open via http://localhost for instant reloads');
   let done=0, i=0;
   const worker = async()=>{
     while(i<TYPES.length){
@@ -224,6 +243,7 @@ async function loadAll(){
   };
   await Promise.all(Array.from({length:CONCURRENCY},worker));
   setTimeout(()=>$('prog').style.opacity=0,400);
+  console.log('roads loaded in',((performance.now()-t0)/1000).toFixed(1),'s');
 }
 $('refresh').onclick=async e=>{
   e.preventDefault();

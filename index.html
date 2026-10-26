@@ -1,896 +1,273 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Johor Roads 2025 - Advanced Mapping</title>
-
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-measure/dist/leaflet-measure.css" />
-
-  <style>
-    :root {
-      --color-bg-primary: #ffffff;
-      --color-bg-secondary: #f8f9fa;
-      --color-bg-tertiary: #f0f2f5;
-      --color-text-primary: #1a1a1a;
-      --color-text-secondary: #666666;
-      --color-text-tertiary: #999999;
-      --color-border: #e0e0e0;
-      --color-accent: #0066cc;
-      --color-accent-hover: #0052a3;
-      --color-success: #10b981;
-      --color-warning: #f59e0b;
-      --color-danger: #ef4444;
-      --color-info: #3b82f6;
-      
-      --road-motorway: #dc2626;
-      --road-trunk: #9333ea;
-      --road-primary: #2563eb;
-      --road-secondary: #10b981;
-      --road-tertiary: #f97316;
-      --road-rail: #64748b;
-      --road-felda: #06b6d4;
-
-      --spacing-xs: 4px;
-      --spacing-sm: 8px;
-      --spacing-md: 12px;
-      --spacing-lg: 16px;
-      --spacing-xl: 24px;
-      
-      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
-      --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-      --shadow-lg: 0 8px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    [data-theme="dark"] {
-      --color-bg-primary: #1a1a1a;
-      --color-bg-secondary: #2d2d2d;
-      --color-bg-tertiary: #3a3a3a;
-      --color-text-primary: #f5f5f5;
-      --color-text-secondary: #b0b0b0;
-      --color-text-tertiary: #808080;
-      --color-border: #404040;
-      --color-accent: #4da6ff;
-      --color-accent-hover: #66b3ff;
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    html, body {
-      height: 100%;
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background-color: var(--color-bg-primary);
-      color: var(--color-text-primary);
-      transition: background-color 0.3s ease, color 0.3s ease;
-    }
-
-    body {
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    #header {
-      height: 70px;
-      background-color: var(--color-bg-secondary);
-      border-bottom: 1px solid var(--color-border);
-      padding: 0 var(--spacing-xl);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: var(--spacing-xl);
-      box-shadow: var(--shadow-sm);
-      z-index: 100;
-    }
-
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-lg);
-      flex: 1;
-      min-width: 0;
-    }
-
-    .logo-section {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-md);
-    }
-
-    .logo-img {
-      width: 44px;
-      height: 44px;
-      border-radius: 6px;
-      object-fit: contain;
-    }
-
-    .title-group {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .title-main {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--color-text-primary);
-    }
-
-    .title-sub {
-      font-size: 12px;
-      color: var(--color-text-tertiary);
-    }
-
-    #search-container {
-      flex: 1;
-      max-width: 400px;
-    }
-
-    .search-input {
-      width: 100%;
-      padding: var(--spacing-sm) var(--spacing-md);
-      border: 1px solid var(--color-border);
-      border-radius: 6px;
-      background-color: var(--color-bg-tertiary);
-      color: var(--color-text-primary);
-      font-size: 14px;
-      transition: all 0.2s ease;
-    }
-
-    .search-input:focus {
-      outline: none;
-      border-color: var(--color-accent);
-      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
-    }
-
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-md);
-    }
-
-    .btn {
-      padding: 6px 12px;
-      border: none;
-      border-radius: 6px;
-      background-color: var(--color-accent);
-      color: white;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-sm);
-      white-space: nowrap;
-    }
-
-    .btn:hover {
-      background-color: var(--color-accent-hover);
-      transform: translateY(-1px);
-      box-shadow: var(--shadow-sm);
-    }
-
-    .btn:active {
-      transform: translateY(0) scale(0.98);
-    }
-
-    .btn-secondary {
-      background-color: var(--color-bg-tertiary);
-      color: var(--color-text-primary);
-      border: 1px solid var(--color-border);
-    }
-
-    .btn-secondary:hover {
-      background-color: var(--color-bg-secondary);
-      color: var(--color-accent);
-    }
-
-    .theme-toggle {
-      width: 44px;
-      height: 44px;
-      border-radius: 6px;
-      border: 1px solid var(--color-border);
-      background-color: var(--color-bg-tertiary);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      transition: all 0.2s ease;
-    }
-
-    .theme-toggle:hover {
-      background-color: var(--color-accent);
-      color: white;
-      border-color: var(--color-accent);
-    }
-
-    #main-container {
-      display: flex;
-      flex: 1;
-      gap: var(--spacing-md);
-      overflow: hidden;
-      padding: var(--spacing-md);
-    }
-
-    #map {
-      flex: 1;
-      border-radius: 8px;
-      border: 1px solid var(--color-border);
-      overflow: hidden;
-      box-shadow: var(--shadow-md);
-      background-color: #e0e7ff;
-    }
-
-    #sidebar {
-      width: 280px;
-      background-color: var(--color-bg-secondary);
-      border: 1px solid var(--color-border);
-      border-radius: 8px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      box-shadow: var(--shadow-md);
-    }
-
-    .sidebar-header {
-      padding: var(--spacing-lg);
-      border-bottom: 1px solid var(--color-border);
-      font-weight: 600;
-      font-size: 14px;
-    }
-
-    .sidebar-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: var(--spacing-lg);
-      display: flex;
-      flex-direction: column;
-      gap: var(--spacing-lg);
-    }
-
-    .sidebar-content::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .sidebar-content::-webkit-scrollbar-track {
-      background: var(--color-bg-tertiary);
-    }
-
-    .sidebar-content::-webkit-scrollbar-thumb {
-      background: var(--color-text-tertiary);
-      border-radius: 3px;
-    }
-
-    .legend-section {
-      display: flex;
-      flex-direction: column;
-      gap: var(--spacing-md);
-    }
-
-    .legend-title {
-      font-weight: 600;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--color-text-secondary);
-      margin-bottom: var(--spacing-sm);
-    }
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-md);
-      cursor: pointer;
-      padding: var(--spacing-sm) var(--spacing-md);
-      border-radius: 4px;
-      transition: all 0.2s ease;
-      animation: slideIn 0.4s ease-out backwards;
-    }
-
-    .legend-item:nth-child(1) { animation-delay: 0.1s; }
-    .legend-item:nth-child(2) { animation-delay: 0.2s; }
-    .legend-item:nth-child(3) { animation-delay: 0.3s; }
-    .legend-item:nth-child(4) { animation-delay: 0.4s; }
-    .legend-item:nth-child(5) { animation-delay: 0.5s; }
-    .legend-item:nth-child(6) { animation-delay: 0.6s; }
-    .legend-item:nth-child(7) { animation-delay: 0.7s; }
-
-    .legend-item:hover {
-      background-color: var(--color-bg-tertiary);
-    }
-
-    .legend-item input[type="checkbox"] {
-      cursor: pointer;
-      width: 18px;
-      height: 18px;
-    }
-
-    .legend-color {
-      width: 24px;
-      height: 3px;
-      border-radius: 2px;
-      flex-shrink: 0;
-    }
-
-    .legend-label {
-      font-size: 12px;
-      color: var(--color-text-primary);
-      flex: 1;
-    }
-
-    .calculator-section {
-      background-color: var(--color-bg-tertiary);
-      padding: var(--spacing-md);
-      border-radius: 6px;
-    }
-
-    .calculator-label {
-      font-size: 12px;
-      color: var(--color-text-secondary);
-      margin-bottom: var(--spacing-sm);
-    }
-
-    .distance-display {
-      font-size: 24px;
-      font-weight: 600;
-      color: var(--color-accent);
-      line-height: 1.2;
-    }
-
-    .distance-unit {
-      font-size: 12px;
-      color: var(--color-text-secondary);
-      margin-top: var(--spacing-sm);
-    }
-
-    .bearing-info {
-      font-size: 12px;
-      color: var(--color-text-tertiary);
-      margin-top: var(--spacing-sm);
-    }
-
-    #footer {
-      height: 36px;
-      background-color: var(--color-bg-secondary);
-      border-top: 1px solid var(--color-border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      color: var(--color-text-tertiary);
-      padding: 0 var(--spacing-lg);
-    }
-
-    .spinner {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: var(--color-bg-secondary);
-      padding: var(--spacing-xl);
-      border-radius: 8px;
-      box-shadow: var(--shadow-lg);
-      display: none;
-      z-index: 10000;
-      text-align: center;
-      min-width: 250px;
-      animation: slideUp 0.4s ease;
-    }
-
-    .spinner.active {
-      display: block;
-    }
-
-    .spinner-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: var(--spacing-md);
-    }
-
-    .spinner-ring {
-      width: 50px;
-      height: 50px;
-      border: 4px solid var(--color-border);
-      border-top-color: var(--color-accent);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    .spinner-text {
-      font-size: 14px;
-      color: var(--color-text-primary);
-      font-weight: 500;
-    }
-
-    .progress-bar {
-      width: 200px;
-      height: 6px;
-      background-color: var(--color-border);
-      border-radius: 3px;
-      overflow: hidden;
-      margin-top: var(--spacing-md);
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--color-accent), var(--color-info));
-      width: 0%;
-      animation: progress 2s ease-in-out infinite;
-    }
-
-    .modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 11000;
-      animation: fadeIn 0.3s ease;
-    }
-
-    .modal.active {
-      display: flex;
-    }
-
-    .modal-content {
-      background: var(--color-bg-primary);
-      padding: var(--spacing-xl);
-      border-radius: 8px;
-      max-width: 450px;
-      width: 90%;
-      box-shadow: var(--shadow-lg);
-      animation: slideUp 0.3s ease;
-      position: relative;
-    }
-
-    .modal-close {
-      position: absolute;
-      top: var(--spacing-lg);
-      right: var(--spacing-lg);
-      background: none;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-      color: var(--color-text-secondary);
-      transition: color 0.2s ease;
-    }
-
-    .modal-close:hover {
-      color: var(--color-text-primary);
-    }
-
-    .notification {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      padding: 12px 16px;
-      color: white;
-      border-radius: 8px;
-      box-shadow: var(--shadow-lg);
-      z-index: 9999;
-      font-weight: 500;
-      animation: slideInUp 0.4s ease, slideOutDown 0.4s ease 2.6s forwards;
-      max-width: 300px;
-    }
-
-    .notification.success { background: var(--color-success); }
-    .notification.danger { background: var(--color-danger); }
-    .notification.warning { background: var(--color-warning); }
-    .notification.info { background: var(--color-info); }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    @keyframes progress {
-      0% { width: 0%; }
-      50% { width: 80%; }
-      100% { width: 100%; }
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateX(-10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
-
-    @keyframes slideInUp {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @keyframes slideOutDown {
-      from {
-        opacity: 1;
-        transform: translateY(0);
-      }
-      to {
-        opacity: 0;
-        transform: translateY(20px);
-        pointer-events: none;
-      }
-    }
-
-    @keyframes numberPop {
-      from {
-        opacity: 0;
-        transform: scale(1.3) translateY(-5px);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-      }
-    }
-
-    @keyframes markerPop {
-      0% {
-        transform: scale(0) rotate(-180deg);
-        opacity: 0;
-      }
-      70% { transform: scale(1.2); }
-      100% {
-        transform: scale(1) rotate(0);
-        opacity: 1;
-      }
-    }
-
-    @keyframes roadAppear {
-      from {
-        opacity: 0;
-        stroke-dasharray: 100;
-        stroke-dashoffset: 100;
-      }
-      to {
-        opacity: 0.8;
-        stroke-dasharray: 100;
-        stroke-dashoffset: 0;
-      }
-    }
-
-    .road-line:hover {
-      opacity: 1 !important;
-      stroke-width: 3 !important;
-      filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.3));
-      cursor: pointer;
-    }
-
-    @media (max-width: 1024px) {
-      #main-container {
-        flex-direction: column;
-      }
-      #sidebar {
-        width: 100%;
-        max-height: 200px;
-      }
-    }
-
-    @media (max-width: 640px) {
-      #header {
-        height: auto;
-        flex-direction: column;
-        padding: var(--spacing-md);
-      }
-      #sidebar { display: none; }
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Johor Roads 2025</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<style>
+:root{
+  --bg:rgba(255,255,255,.78);--bg-solid:#fff;--fg:#0f172a;--muted:#64748b;--line:rgba(15,23,42,.1);
+  --accent:#4f46e5;--chip:rgba(15,23,42,.05);--shadow:0 10px 30px rgba(15,23,42,.15);
+}
+[data-theme=dark]{
+  --bg:rgba(17,24,39,.78);--bg-solid:#111827;--fg:#f1f5f9;--muted:#94a3b8;--line:rgba(255,255,255,.1);
+  --accent:#818cf8;--chip:rgba(255,255,255,.07);--shadow:0 10px 30px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box;margin:0}
+html,body,#map{height:100%}
+body{font:14px/1.4 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--fg);background:var(--bg-solid)}
+.glass{background:var(--bg);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4);
+  border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+#bar{position:absolute;z-index:1000;top:12px;left:12px;right:12px;max-width:520px;display:flex;align-items:center;gap:10px;padding:8px 10px}
+.brand{font-weight:700;letter-spacing:-.01em;white-space:nowrap;display:flex;align-items:center;gap:8px}
+.brand i{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#06b6d4);display:grid;place-items:center;font-style:normal;font-size:15px}
+#q{flex:1;min-width:0;border:0;outline:0;background:var(--chip);color:var(--fg);padding:8px 12px;border-radius:10px;font:inherit}
+button{font:inherit;color:inherit;border:0;cursor:pointer;background:var(--chip);border-radius:10px;padding:8px 10px;transition:.15s}
+button:hover{background:var(--accent);color:#fff}
+#panel{position:absolute;z-index:1000;top:12px;right:12px;width:260px;padding:14px;display:flex;flex-direction:column;gap:14px;max-height:calc(100% - 24px);overflow:auto}
+h4{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}
+.chips{display:flex;flex-direction:column;gap:4px}
+.chip{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:10px;cursor:pointer;user-select:none;transition:.15s}
+.chip:hover{background:var(--chip)}
+.chip input{accent-color:var(--accent)}
+.sw{width:22px;height:4px;border-radius:2px}
+.chip span.n{margin-left:auto;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.chip.loading .n::after{content:"…"}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{background:var(--chip);border-radius:12px;padding:10px}
+.stat b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+.stat small{color:var(--muted);font-size:11px}
+.row{display:flex;gap:8px}.row button{flex:1}
+#prog{position:absolute;z-index:1100;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,#6366f1,#06b6d4);transition:width .3s,opacity .5s}
+#toast{position:absolute;z-index:1200;bottom:24px;left:50%;transform:translate(-50%,20px);opacity:0;padding:10px 16px;pointer-events:none;transition:.3s}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+.note{font-size:11px;color:var(--muted)}
+.leaflet-container{background:var(--bg-solid);font:inherit}
+@media(max-width:700px){
+  #panel{top:auto;bottom:12px;left:12px;right:12px;width:auto;max-height:42%}
+  .brand span{display:none}
+}
+</style>
 </head>
 <body>
-  <div id="header">
-    <div class="header-left">
-      <div class="logo-section">
-        <img src="data:image/png;base64,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" alt="Logo" class="logo-img" />
-        <div class="title-group">
-          <div class="title-main">📍 Johor Roads</div>
-          <div class="title-sub">Advanced Mapping System 2025</div>
-        </div>
-      </div>
-      <div id="search-container">
-        <input type="text" id="location-search" class="search-input" placeholder="Search location..." />
-      </div>
-    </div>
-    <div class="header-right">
-      <button class="btn btn-secondary" onclick="downloadMarkers()">📥 Export</button>
-      <button class="btn btn-secondary" onclick="downloadMap()">🖼️ Map</button>
-      <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙</button>
+<div id="prog"></div>
+<div id="map"></div>
+
+<div id="bar" class="glass">
+  <div class="brand"><i>🛣️</i><span>Johor Roads</span></div>
+  <input id="q" type="search" placeholder="Search a place…" autocomplete="off" />
+  <button id="theme" title="Toggle theme">🌙</button>
+</div>
+
+<aside id="panel" class="glass">
+  <div>
+    <h4>Layers</h4>
+    <div class="chips" id="chips"></div>
+  </div>
+  <div>
+    <h4>Measure · click map</h4>
+    <div class="stats">
+      <div class="stat"><b id="sCount">0</b><small>Markers</small></div>
+      <div class="stat"><b id="sTotal">0</b><small>Total km</small></div>
+      <div class="stat"><b id="sLeg">—</b><small>Last leg km</small></div>
+      <div class="stat"><b id="sBear">—</b><small>Bearing</small></div>
     </div>
   </div>
-
-  <div id="main-container">
-    <div id="map"></div>
-    
-    <div id="sidebar">
-      <div class="sidebar-header">🎮 Controls</div>
-      <div class="sidebar-content">
-        <div class="legend-section">
-          <div class="legend-title">Road Types</div>
-          <label class="legend-item">
-            <input type="checkbox" class="road-toggle" data-type="motorway" checked />
-            <div class="legend-color" style="background: var(--road-motorway);"></div>
-            <span class="legend-label">Motorway</span>
-          </label>
-          <label class="legend-item">
-            <input type="checkbox" class="road-toggle" data-type="trunk" checked />
-            <div class="legend-color" style="background: var(--road-trunk);"></div>
-            <span class="legend-label">Trunk</span>
-          </label>
-          <label class="legend-item">
-            <input type="checkbox" class="road-toggle" data-type="primary" checked />
-            <div class="legend-color" style="background: var(--road-primary);"></div>
-            <span class="legend-label">Primary</span>
-          </label>
-          <label class="legend-item">
-            <input type="checkbox" class="road-toggle" data-type="secondary" checked />
-            <div class="legend-color" style="background: var(--road-secondary);"></div>
-            <span class="legend-label">Secondary</span>
-          </label>
-          <label class="legend-item">
-            <input type="checkbox" class="road-toggle" data-type="tertiary" checked />
-            <div class="legend-color" style="background: var(--road-tertiary);"></div>
-            <span class="legend-label">Tertiary</span>
-          </label>
-          <label class="legend-item">
-            <input type="checkbox" class="road-toggle" data-type="rail" checked />
-            <div class="legend-color" style="background: var(--road-rail);"></div>
-            <span class="legend-label">Railway</span>
-          </label>
-          <label class="legend-item">
-            <input type="checkbox" class="road-toggle" data-type="felda" checked />
-            <div class="legend-color" style="background: var(--road-felda);"></div>
-            <span class="legend-label">FELDA</span>
-          </label>
-        </div>
-
-        <div class="calculator-section">
-          <div class="calculator-label">📍 Markers</div>
-          <div class="distance-display" id="marker-count">0</div>
-          <div class="calculator-label" style="margin-top: var(--spacing-md);">Distance</div>
-          <div class="distance-display" id="distance-display" style="font-size: 20px;">—</div>
-          <div class="distance-unit" id="distance-unit"></div>
-          <div class="bearing-info" id="bearing-info"></div>
-          <button class="btn" onclick="clearMarkers()" style="width: 100%; margin-top: var(--spacing-md);">🗑️ Clear</button>
-        </div>
-      </div>
-    </div>
+  <div class="row">
+    <button id="bCsv">⬇ CSV</button>
+    <button id="bPng">🖼 PNG</button>
+    <button id="bClr">🗑</button>
   </div>
+  <div class="note">Road data cached locally for 7 days. <a href="#" id="refresh" style="color:var(--accent)">Refresh</a><br>© OpenStreetMap contributors</div>
+</aside>
+<div id="toast" class="glass"></div>
 
-  <div id="footer">JSO Roads Viewer 2025 • Click to mark • OpenStreetMap Data</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dom-to-image@2.6.0/src/dom-to-image.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const TYPES = [
+  ['motorway','Motorway','#ef4444','way["highway"="motorway"]',3],
+  ['trunk','Trunk','#a855f7','way["highway"="trunk"]',2.6],
+  ['primary','Primary','#3b82f6','way["highway"="primary"]',2.2],
+  ['rail','Railway','#64748b','way["railway"="rail"]',1.6,'6 6'],
+  ['felda','FELDA','#06b6d4','way["highway"]["name"~"FELDA",i]',2],
+  ['secondary','Secondary','#10b981','way["highway"="secondary"]',1.6],
+  ['tertiary','Tertiary','#f97316','way["highway"="tertiary"]',1.2],
+];
+const ENDPOINTS = ['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
+const TTL = 7*864e5, CONCURRENCY = 3;
 
-  <div class="spinner" id="spinner">
-    <div class="spinner-content">
-      <div class="spinner-ring"></div>
-      <div class="spinner-text" id="spinner-text">Loading roads...</div>
-      <div class="progress-bar">
-        <div class="progress-fill"></div>
-      </div>
-    </div>
-  </div>
+/* ---------- Map ---------- */
+const map = L.map('map',{
+  preferCanvas:true, zoomControl:false, zoomSnap:.5,
+  renderer:L.canvas({padding:.3}),
+  maxBounds:[[0.9,102.2],[3.3,104.7]], maxBoundsViscosity:.5
+}).setView([1.85,103.4],9);
+L.control.zoom({position:'bottomleft'}).addTo(map);
+L.control.scale({imperial:false,position:'bottomleft'}).addTo(map);
 
-  <div class="modal" id="info-modal">
-    <div class="modal-content">
-      <button class="modal-close" onclick="closeModal()">✕</button>
-      <h3 style="margin-bottom: var(--spacing-lg); color: var(--color-accent);">📋 About This Map</h3>
-      <p style="margin-bottom: var(--spacing-md); line-height: 1.6; font-size: 14px;">
-        <strong>Confidential JSO Reference Map</strong><br><br>
-        • Click anywhere on the map to add location markers<br>
-        • Toggle road types in the sidebar to filter display<br>
-        • Export markers as CSV with distance & bearing data<br>
-        • Save the map as a PNG image<br>
-        • Search for locations using the search bar<br><br>
-        <em>This map contains preliminary data for reference purposes only.</em>
-      </p>
-    </div>
-  </div>
+const tiles = {
+  light:L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',maxZoom:19,crossOrigin:true}),
+  dark:L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',maxZoom:19,crossOrigin:true})
+};
+let theme = localStorage.theme || (matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+function applyTheme(){
+  document.documentElement.dataset.theme = theme;
+  $('theme').textContent = theme==='dark'?'☀️':'🌙';
+  Object.values(tiles).forEach(t=>map.hasLayer(t)&&map.removeLayer(t));
+  tiles[theme].addTo(map).bringToBack();
+}
+$('theme').onclick=()=>{theme=theme==='dark'?'light':'dark';localStorage.theme=theme;applyTheme()};
+applyTheme();
 
-  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-  <script src="https://unpkg.com/leaflet-measure/dist/leaflet-measure.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dom-to-image@2.6.0/src/dom-to-image.min.js"></script>
-  <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+/* ---------- Layer chips ---------- */
+const layers = {};
+$('chips').innerHTML = TYPES.map(([k,label,c])=>`
+  <label class="chip loading" id="chip-${k}"><input type="checkbox" data-k="${k}" checked>
+  <i class="sw" style="background:${c}"></i>${label}<span class="n"></span></label>`).join('');
+$('chips').addEventListener('change',e=>{
+  const l = layers[e.target.dataset.k]; if(!l) return;
+  e.target.checked ? l.addTo(map) : map.removeLayer(l);
+});
 
-  <script>
-    const roadColors = { motorway: '#dc2626', trunk: '#9333ea', primary: '#2563eb', secondary: '#10b981', tertiary: '#f97316', rail: '#64748b', felda: '#06b6d4' };
-    const roadLayers = {};
-    const markerData = [];
-    const districts = ["Mersing", "Kluang", "Batu Pahat", "Pontian", "Johor Bahru", "Kulai", "Kota Tinggi", "Segamat", "Tangkak", "Muar"];
-    const types = ["motorway", "trunk", "primary", "secondary", "tertiary", "rail", "felda"];
+/* ---------- IndexedDB cache ---------- */
+const db = new Promise(res=>{
+  const r = indexedDB.open('johor-roads',1);
+  r.onupgradeneeded=()=>r.result.createObjectStore('c');
+  r.onsuccess=()=>res(r.result); r.onerror=()=>res(null);
+});
+async function cacheGet(k){
+  const d = await db; if(!d) return null;
+  return new Promise(res=>{const q=d.transaction('c').objectStore('c').get(k);
+    q.onsuccess=()=>res(q.result&&Date.now()-q.result.t<TTL?q.result.v:null);q.onerror=()=>res(null)});
+}
+async function cacheSet(k,v){const d=await db; if(d) d.transaction('c','readwrite').objectStore('c').put({t:Date.now(),v},k)}
 
-    const map = L.map('map', { maxBounds: L.latLngBounds([1.15, 102.5], [3.03, 104.5]), maxBoundsViscosity: 0.1 }).setView([1.85, 103.6], 9);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
-
-    const markerLayer = L.layerGroup().addTo(map);
-
-    map.on('click', (e) => {
-      const m = L.circleMarker(e.latlng, { radius: 6, fillColor: '#0066cc', color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.8 }).addTo(markerLayer);
-      m._container.style.animation = 'markerPop 0.5s ease-out';
-      const pt = { lat: e.latlng.lat, lng: e.latlng.lng };
-      markerData.push(pt);
-      m.bindPopup(`<strong>📍 Marker ${markerData.length}</strong><br>Lat: ${e.latlng.lat.toFixed(5)}<br>Lng: ${e.latlng.lng.toFixed(5)}`).openPopup();
-      m.on('click', () => { markerLayer.removeLayer(m); markerData.splice(markerData.indexOf(pt), 1); updateMarkers(); });
-      updateMarkers();
-    });
-
-    function updateMarkers() {
-      document.getElementById('marker-count').textContent = markerData.length;
-      const d = document.getElementById('distance-display');
-      d.style.animation = 'none';
-      setTimeout(() => {
-        if (markerData.length >= 2) {
-          const l1 = markerData[markerData.length - 1], l2 = markerData[markerData.length - 2];
-          const dist = turf.distance(turf.point([l2.lng, l2.lat]), turf.point([l1.lng, l1.lat]), { units: 'kilometers' });
-          const bear = turf.bearing(turf.point([l2.lng, l2.lat]), turf.point([l1.lng, l1.lat]));
-          d.textContent = dist.toFixed(2);
-          d.style.animation = 'numberPop 0.4s ease';
-          document.getElementById('distance-unit').textContent = 'km';
-          document.getElementById('bearing-info').textContent = `🧭 ${bear.toFixed(0)}°`;
-        } else {
-          d.textContent = '—';
-          document.getElementById('distance-unit').textContent = '';
-          document.getElementById('bearing-info').textContent = '';
-        }
-      }, 10);
+/* ---------- Fetch (one query per type for the whole state) ---------- */
+async function overpass(sel){
+  const q = `[out:json][timeout:90];area["name"="Johor"]["admin_level"="4"]->.a;${sel}(area.a);out geom qt;`;
+  let err;
+  for(const url of ENDPOINTS){
+    try{
+      const r = await fetch(url,{method:'POST',body:'data='+encodeURIComponent(q)});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const j = await r.json();
+      // compact: round to 5 dp, keep only coordinate arrays
+      return j.elements.filter(e=>e.geometry?.length>1)
+        .map(e=>e.geometry.map(p=>[+p.lat.toFixed(5),+p.lon.toFixed(5)]));
+    }catch(e){err=e}
+  }
+  throw err;
+}
+async function loadType([k,label,color,sel,weight,dash]){
+  const chip = $('chip-'+k);
+  try{
+    const key='v1-'+k;
+    let lines = await cacheGet(key);
+    if(!lines){ lines = await overpass(sel); cacheSet(key,lines); }
+    // ONE multi-polyline per type instead of thousands of objects
+    const layer = L.polyline(lines,{color,weight,opacity:.85,dashArray:dash,
+      smoothFactor:1.5,interactive:false,lineCap:'round',lineJoin:'round'});
+    layers[k]=layer;
+    if(chip.querySelector('input').checked) layer.addTo(map);
+    chip.querySelector('.n').textContent = lines.length.toLocaleString();
+  }catch(e){
+    chip.querySelector('.n').textContent='⚠';
+    chip.title='Failed: '+e.message+' (click Refresh to retry)';
+  }
+  chip.classList.remove('loading');
+}
+async function loadAll(){
+  $('prog').style.opacity=1;$('prog').style.width='5%';
+  let done=0, i=0;
+  const worker = async()=>{
+    while(i<TYPES.length){
+      await loadType(TYPES[i++]);
+      $('prog').style.width = (5+95*++done/TYPES.length)+'%';
     }
+  };
+  await Promise.all(Array.from({length:CONCURRENCY},worker));
+  setTimeout(()=>$('prog').style.opacity=0,400);
+}
+$('refresh').onclick=async e=>{
+  e.preventDefault();
+  const d=await db; if(d) d.transaction('c','readwrite').objectStore('c').clear();
+  Object.values(layers).forEach(l=>map.removeLayer(l));
+  for(const k in layers) delete layers[k];
+  TYPES.forEach(t=>$('chip-'+t[0]).classList.add('loading'));
+  loadAll();
+};
+loadAll();
 
-    function clearMarkers() { markerLayer.clearLayers(); markerData.length = 0; updateMarkers(); }
+/* ---------- Measuring (no turf needed) ---------- */
+const R=6371.0088, rad=d=>d*Math.PI/180;
+function dist(a,b){
+  const dLa=rad(b.lat-a.lat), dLo=rad(b.lng-a.lng);
+  const h=Math.sin(dLa/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLo/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+function bearing(a,b){
+  const y=Math.sin(rad(b.lng-a.lng))*Math.cos(rad(b.lat));
+  const x=Math.cos(rad(a.lat))*Math.sin(rad(b.lat))-Math.sin(rad(a.lat))*Math.cos(rad(b.lat))*Math.cos(rad(b.lng-a.lng));
+  return (Math.atan2(y,x)*180/Math.PI+360)%360;
+}
+const pts=[], dots=[];
+const path=L.polyline([],{color:'#6366f1',weight:3,dashArray:'2 8',lineCap:'round',interactive:false}).addTo(map);
+const dotLayer=L.layerGroup().addTo(map);
 
-    async function loadRoads() {
-      showSpinner('🗺️ Loading roads (70 total)...');
-      let count = 0;
-      
-      for (const dist of districts) {
-        for (const type of types) {
-          try {
-            const query = type === 'rail' 
-              ? `[out:json][timeout:20];area["name"="${dist}"]["admin_level"="6"]->.a;way["railway"](area.a);out geom;`
-              : type === 'felda'
-              ? `[out:json][timeout:20];area["name"="${dist}"]["admin_level"="6"]->.a;way["name"~"FELDA"](area.a);out geom;`
-              : `[out:json][timeout:20];area["name"="${dist}"]["admin_level"="6"]->.a;way["highway"="${type}"](area.a);out geom;`;
+map.on('click',e=>{
+  const p=e.latlng, dot=L.circleMarker(p,{radius:7,fillColor:'#6366f1',fillOpacity:1,color:'#fff',weight:2,bubblingMouseEvents:false}).addTo(dotLayer);
+  pts.push(p); dots.push(dot);
+  dot.bindTooltip(`#${pts.length} · ${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}<br><small>Click to remove</small>`);
+  dot.on('click',()=>{const i=dots.indexOf(dot);dotLayer.removeLayer(dot);dots.splice(i,1);pts.splice(i,1);refresh()});
+  refresh();
+});
+function refresh(){
+  path.setLatLngs(pts);
+  const n=pts.length; $('sCount').textContent=n;
+  let total=0; for(let i=1;i<n;i++) total+=dist(pts[i-1],pts[i]);
+  $('sTotal').textContent=total.toFixed(2);
+  if(n>1){const a=pts[n-2],b=pts[n-1];$('sLeg').textContent=dist(a,b).toFixed(2);$('sBear').textContent=bearing(a,b).toFixed(0)+'°'}
+  else{$('sLeg').textContent='—';$('sBear').textContent='—'}
+}
+$('bClr').onclick=()=>{dotLayer.clearLayers();pts.length=dots.length=0;refresh()};
 
-            const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: query });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            const group = L.layerGroup().addTo(map);
-            
-            if (data.elements && Array.isArray(data.elements)) {
-              data.elements.forEach((el, i) => {
-                if (el.geometry && Array.isArray(el.geometry) && el.geometry.length > 0) {
-                  const coords = el.geometry.map(p => [p.lat, p.lon]);
-                  const line = L.polyline(coords, {
-                    color: roadColors[type] || '#999',
-                    weight: type === 'rail' ? 1.5 : 2,
-                    opacity: 0.8,
-                    dashArray: type === 'rail' ? '5,5' : undefined,
-                    className: 'road-line'
-                  });
-                  line._container && (line._container.style.animation = `roadAppear 0.6s ease ${i * 20}ms`);
-                  line.bindPopup(`<strong>${type}</strong><br>${dist}`).addTo(group);
-                }
-              });
-            }
-            roadLayers[`${type}-${dist}`] = group;
-          } catch (err) {
-            console.warn(`${type} in ${dist}:`, err.message);
-          }
-          count++;
-          document.getElementById('spinner-text').textContent = `Loading roads... ${count}/70`;
-          await new Promise(r => setTimeout(r, 50));
-        }
-      }
-      
-      hideSpinner();
-      showModal();
-      L.control.scale({ imperial: false }).addTo(map);
-    }
+/* ---------- Search (debounced, Enter/typing) ---------- */
+let timer, searchMarker;
+$('q').addEventListener('input',e=>{
+  clearTimeout(timer);
+  const v=e.target.value.trim(); if(v.length<3) return;
+  timer=setTimeout(async()=>{
+    try{
+      const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(v)}&viewbox=102.5,3.03,104.5,1.15&bounded=1`);
+      const [hit]=await r.json();
+      if(!hit) return toast('No results in Johor');
+      const ll=[+hit.lat,+hit.lon];
+      map.flyTo(ll,13,{duration:1});
+      searchMarker&&map.removeLayer(searchMarker);
+      searchMarker=L.marker(ll).addTo(map).bindPopup(`<b>${hit.display_name.split(',')[0]}</b>`).openPopup();
+    }catch{toast('Search failed')}
+  },600);
+});
 
-    document.querySelectorAll('.road-toggle').forEach(chk => {
-      chk.addEventListener('change', (e) => {
-        const type = e.target.dataset.type, checked = e.target.checked;
-        Object.entries(roadLayers).forEach(([key, group]) => {
-          if (key.startsWith(type + '-')) checked ? map.addLayer(group) : map.removeLayer(group);
-        });
-      });
-    });
-
-    document.getElementById('location-search').addEventListener('input', (e) => {
-      const q = e.target.value.trim();
-      if (q.length < 3) return;
-      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&viewbox=102.5,1.15,104.5,3.03&bounded=1`)
-        .then(r => r.json())
-        .then(results => { if (results.length > 0) { const res = results[0]; map.setView([parseFloat(res.lat), parseFloat(res.lon)], 12); L.marker([parseFloat(res.lat), parseFloat(res.lon)]).bindPopup(`<strong>${res.name}</strong>`).addTo(map).openPopup(); } });
-    });
-
-    function downloadMarkers() {
-      if (!markerData.length) { showNotif('No markers!', 'warning'); return; }
-      let csv = 'Index,Latitude,Longitude,Distance (km),Bearing (°)\n';
-      markerData.forEach((p, i) => {
-        let dist = '', bear = '';
-        if (i > 0) {
-          const d = turf.distance(turf.point([markerData[i-1].lng, markerData[i-1].lat]), turf.point([p.lng, p.lat]), { units: 'kilometers' });
-          const b = turf.bearing(turf.point([markerData[i-1].lng, markerData[i-1].lat]), turf.point([p.lng, p.lat]));
-          dist = d.toFixed(2); bear = b.toFixed(0);
-        }
-        csv += `${i+1},${p.lat.toFixed(5)},${p.lng.toFixed(5)},${dist},${bear}\n`;
-      });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-      a.download = 'markers.csv';
-      a.click();
-      showNotif(`✓ Exported ${markerData.length} markers`, 'success');
-    }
-
-    function downloadMap() {
-      showSpinner('🎨 Rendering...');
-      setTimeout(() => {
-        domtoimage.toPng(document.getElementById('map')).then(url => {
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'map.png';
-          a.click();
-          hideSpinner();
-          showNotif('✓ Map saved', 'success');
-        }).catch(() => { hideSpinner(); showNotif('✗ Failed', 'danger'); });
-      }, 100);
-    }
-
-    function toggleTheme() {
-      const current = document.documentElement.getAttribute('data-theme') || 'light';
-      const next = current === 'light' ? 'dark' : 'light';
-      document.documentElement.setAttribute('data-theme', next);
-      localStorage.setItem('theme', next);
-      document.getElementById('theme-toggle').textContent = next === 'light' ? '🌙' : '☀️';
-    }
-
-    function showSpinner(text) { document.getElementById('spinner-text').textContent = text; document.getElementById('spinner').classList.add('active'); }
-    function hideSpinner() { setTimeout(() => document.getElementById('spinner').classList.remove('active'), 500); }
-    function showModal() { const m = document.getElementById('info-modal'); m.classList.add('active'); setTimeout(() => closeModal(), 4000); }
-    function closeModal() { document.getElementById('info-modal').classList.remove('active'); }
-    function showNotif(msg, type = 'info') { const div = document.createElement('div'); div.className = `notification ${type}`; div.textContent = msg; document.body.appendChild(div); setTimeout(() => div.remove(), 3000); }
-
-    window.addEventListener('load', () => {
-      document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light');
-      loadRoads();
-    });
-
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
-  </script>
+/* ---------- Export ---------- */
+$('bCsv').onclick=()=>{
+  if(!pts.length) return toast('No markers yet');
+  const rows=['Index,Latitude,Longitude,Leg km,Bearing'];
+  pts.forEach((p,i)=>rows.push([i+1,p.lat.toFixed(5),p.lng.toFixed(5),
+    i?dist(pts[i-1],p).toFixed(2):'',i?bearing(pts[i-1],p).toFixed(0):''].join(',')));
+  save(URL.createObjectURL(new Blob([rows.join('\n')],{type:'text/csv'})),'markers.csv');
+  toast(`Exported ${pts.length} markers`);
+};
+$('bPng').onclick=()=>{
+  toast('Rendering…');
+  domtoimage.toPng($('map'),{filter:n=>!n.classList?.contains('leaflet-control-container')})
+    .then(u=>{save(u,'johor-map.png');toast('Map saved')}).catch(()=>toast('PNG export failed'));
+};
+function save(href,name){const a=document.createElement('a');a.href=href;a.download=name;a.click()}
+let tt; function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),2500)}
+</script>
 </body>
 </html>

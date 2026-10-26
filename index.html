@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Johor Roads 2025</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
@@ -23,6 +24,8 @@ body{font:14px/1.4 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var
 .brand{font-weight:700;letter-spacing:-.01em;white-space:nowrap;display:flex;align-items:center;gap:8px}
 .brand i{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#06b6d4);display:grid;place-items:center;font-style:normal;font-size:15px}
 #q{flex:1;min-width:0;border:0;outline:0;background:var(--chip);color:var(--fg);padding:8px 12px;border-radius:10px;font:inherit}
+select{width:100%;font:inherit;color:var(--fg);background:var(--chip);border:0;border-radius:10px;padding:8px 10px;outline:0}
+option{background:var(--bg-solid);color:var(--fg)}
 button{font:inherit;color:inherit;border:0;cursor:pointer;background:var(--chip);border-radius:10px;padding:8px 10px;transition:.15s}
 button:hover{background:var(--accent);color:#fff}
 #panel{position:absolute;z-index:1000;top:12px;right:12px;width:260px;padding:14px;display:flex;flex-direction:column;gap:14px;max-height:calc(100% - 24px);overflow:auto}
@@ -44,6 +47,10 @@ h4{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute
 #toast.on{opacity:1;transform:translate(-50%,0)}
 .note{font-size:11px;color:var(--muted)}
 .leaflet-container{background:var(--bg-solid);font:inherit}
+#map.inv .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.9) contrast(.88) saturate(.55)}
+[data-theme=dark] .leaflet-control-attribution{background:rgba(17,24,39,.7);color:#94a3b8}
+[data-theme=dark] .leaflet-control-attribution a{color:#a5b4fc}
+[data-theme=dark] .leaflet-bar a,[data-theme=dark] .leaflet-popup-content-wrapper,[data-theme=dark] .leaflet-popup-tip,[data-theme=dark] .leaflet-tooltip{background:#1f2937;color:#f1f5f9;border-color:#374151}
 @media(max-width:700px){
   #panel{top:auto;bottom:12px;left:12px;right:12px;width:auto;max-height:42%}
   .brand span{display:none}
@@ -56,11 +63,15 @@ h4{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute
 
 <div id="bar" class="glass">
   <div class="brand"><i>🛣️</i><span>Johor Roads</span></div>
-  <input id="q" type="search" placeholder="Search a place…" autocomplete="off" />
+  <input id="q" type="search" placeholder="Search a place, press Enter…" autocomplete="off" />
   <button id="theme" title="Toggle theme">🌙</button>
 </div>
 
 <aside id="panel" class="glass">
+  <div>
+    <h4>Basemap</h4>
+    <select id="base"></select>
+  </div>
   <div>
     <h4>Layers</h4>
     <div class="chips" id="chips"></div>
@@ -108,19 +119,42 @@ const map = L.map('map',{
 L.control.zoom({position:'bottomleft'}).addTo(map);
 L.control.scale({imperial:false,position:'bottomleft'}).addTo(map);
 
-const tiles = {
-  light:L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',maxZoom:19,crossOrigin:true}),
-  dark:L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',maxZoom:19,crossOrigin:true})
+// Keyless basemaps. Esri works from file:// too (OSM blocks pages that send no Referer).
+const BASES = {
+  esri:{name:'Esri Streets',url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+    max:19,native:17,inv:true,attr:'Tiles © Esri — Esri, HERE, Garmin, © OpenStreetMap contributors'},
+  osm:{name:'OpenStreetMap',url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    max:19,native:19,inv:true,attr:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'},
+  esridark:{name:'Esri Dark Gray (low zoom detail)',url:'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    max:19,native:16,inv:false,attr:'Tiles © Esri — Esri, HERE, Garmin, © OpenStreetMap contributors'},
+  sat:{name:'Esri Satellite',url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    max:19,native:18,inv:false,attr:'Tiles © Esri — Maxar, Earthstar Geographics'}
 };
-let theme = localStorage.theme || (matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+$('base').innerHTML = Object.entries(BASES).map(([k,b])=>`<option value="${k}">${b.name}</option>`).join('');
+let baseKey = localStorage.getItem('jr-base'); if(!BASES[baseKey]) baseKey='esri';
+let baseLayer, errs=0;
+function setBase(k){
+  baseKey=k; const b=BASES[k]; errs=0;
+  baseLayer && map.removeLayer(baseLayer);
+  baseLayer = L.tileLayer(b.url,{attribution:b.attr,maxZoom:b.max,maxNativeZoom:b.native,crossOrigin:true}).addTo(map).bringToBack();
+  baseLayer.on('tileerror',()=>{ // auto-fallback if a provider blocks us
+    if(++errs===8 && k!=='esri'){ toast(b.name+' is blocking tiles — switched to Esri'); $('base').value='esri'; setBase('esri'); }
+    else if(errs===8) toast('Tiles failing to load — pick another basemap');
+  });
+  $('base').value=k; localStorage.setItem('jr-base',k); tint();
+}
+$('base').onchange=e=>setBase(e.target.value);
+// Dark mode is the default; a saved choice is respected
+let theme = localStorage.getItem('jr-theme') || 'dark';
+function tint(){ $('map').classList.toggle('inv', theme==='dark' && BASES[baseKey].inv); }
 function applyTheme(){
   document.documentElement.dataset.theme = theme;
   $('theme').textContent = theme==='dark'?'☀️':'🌙';
-  Object.values(tiles).forEach(t=>map.hasLayer(t)&&map.removeLayer(t));
-  tiles[theme].addTo(map).bringToBack();
+  tint();
 }
-$('theme').onclick=()=>{theme=theme==='dark'?'light':'dark';localStorage.theme=theme;applyTheme()};
+$('theme').onclick=()=>{theme=theme==='dark'?'light':'dark';localStorage.setItem('jr-theme',theme);applyTheme()};
 applyTheme();
+setBase(baseKey);
 
 /* ---------- Layer chips ---------- */
 const layers = {};
@@ -236,10 +270,10 @@ $('bClr').onclick=()=>{dotLayer.clearLayers();pts.length=dots.length=0;refresh()
 
 /* ---------- Search (debounced, Enter/typing) ---------- */
 let timer, searchMarker;
-$('q').addEventListener('input',e=>{
-  clearTimeout(timer);
+$('q').addEventListener('keydown',e=>{
+  if(e.key!=='Enter') return;
   const v=e.target.value.trim(); if(v.length<3) return;
-  timer=setTimeout(async()=>{
+  {(async()=>{
     try{
       const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(v)}&viewbox=102.5,3.03,104.5,1.15&bounded=1`);
       const [hit]=await r.json();
@@ -249,7 +283,7 @@ $('q').addEventListener('input',e=>{
       searchMarker&&map.removeLayer(searchMarker);
       searchMarker=L.marker(ll).addTo(map).bindPopup(`<b>${hit.display_name.split(',')[0]}</b>`).openPopup();
     }catch{toast('Search failed')}
-  },600);
+  })()}
 });
 
 /* ---------- Export ---------- */
